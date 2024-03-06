@@ -146,7 +146,7 @@ resource "aws_route_table_association" "private_rta2" {
 resource "aws_ecs_cluster" "cluster" {
   name = "my-cluster"
 }
-
+/*
 resource "aws_alb" "main" {
   name               = "my-alb"
   internal           = false
@@ -155,7 +155,6 @@ resource "aws_alb" "main" {
   subnets            = [aws_subnet.private_subnet1.id, aws_subnet.private_subnet2.id]
 }
 
-/*
 resource "aws_ecs_task_definition" "frontend_task" {
   family                   = "frontend"
   network_mode             = "awsvpc"
