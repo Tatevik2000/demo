@@ -215,7 +215,7 @@ resource "aws_alb_target_group" "frontend_group" {
     path = "/"
   }
 }
-
+/*
 resource "aws_alb_target_group" "backend_group" {
   name     = "backend-group"
   port     = 3001
@@ -237,6 +237,7 @@ resource "aws_alb_listener" "frontend_listener" {
     target_group_arn = aws_alb_target_group.frontend_group.arn
   }
 }
+
 
 resource "aws_alb_listener_rule" "backend_rule" {
   listener_arn = aws_alb_listener.frontend_listener.arn
@@ -343,4 +344,4 @@ resource "aws_security_group_rule" "ecs_tasks_allow" {
 
   security_group_id = aws_security_group.ecs_tasks_sg.id
 }
-
+*/
