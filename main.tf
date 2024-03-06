@@ -345,12 +345,6 @@ resource "aws_security_group_rule" "ecs_tasks_allow" {
   security_group_id = aws_security_group.ecs_tasks_sg.id
 }
 
-
-
-provider "aws" {
-  region = "us-east-1"
-}
-
 # ECR Repository for storing container images
 resource "aws_ecr_repository" "my_ecr_repo" {
   name                 = "my-ecr-repo"
