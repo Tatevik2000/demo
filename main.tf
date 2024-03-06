@@ -210,7 +210,7 @@ resource "aws_alb_target_group" "frontend_group" {
   port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
-
+  target_type = "ip"
   health_check {
     path = "/"
   }
@@ -221,7 +221,7 @@ resource "aws_alb_target_group" "backend_group" {
   port     = 3001
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
-
+  target_type = "ip"
   health_check {
     path = "/status"
   }
