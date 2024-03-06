@@ -147,6 +147,15 @@ resource "aws_ecs_cluster" "cluster" {
   name = "my-cluster"
 }
 
+resource "aws_alb" "main" {
+  name               = "my-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb_sg.id]
+  subnets            = [aws_subnet.private_subnet1.id, aws_subnet.private_subnet2.id]
+}
+
+/*
 resource "aws_ecs_task_definition" "frontend_task" {
   family                   = "frontend"
   network_mode             = "awsvpc"
@@ -197,14 +206,6 @@ EOF
   memory = "512"
 }
 
-resource "aws_alb" "main" {
-  name               = "my-alb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb_sg.id]
-  subnets            = [aws_subnet.private_subnet1.id, aws_subnet.private_subnet2.id]
-}
-
 resource "aws_alb_target_group" "frontend_group" {
   name     = "frontend-group"
   port     = 80
@@ -215,7 +216,7 @@ resource "aws_alb_target_group" "frontend_group" {
     path = "/"
   }
 }
-/*
+
 resource "aws_alb_target_group" "backend_group" {
   name     = "backend-group"
   port     = 3001
