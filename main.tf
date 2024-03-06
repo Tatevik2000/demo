@@ -202,7 +202,7 @@ resource "aws_alb" "main" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
-  subnets            = [aws_subnet.subnet1.id, aws_subnet.subnet2.id]
+  subnets            = [aws_subnet.private_subnet1.id, aws_subnet.private_subnet2.id]
 }
 
 resource "aws_alb_target_group" "frontend_group" {
@@ -279,7 +279,7 @@ resource "aws_ecs_service" "frontend_service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets = [aws_subnet.subnet1.id, aws_subnet.subnet2.id]
+    subnets = [aws_subnet.private_subnet1.id, aws_subnet.private_subnet2.id]
     security_groups = [aws_security_group.ecs_tasks_sg.id]
   }
 
@@ -299,7 +299,7 @@ resource "aws_ecs_service" "backend_service" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets = [aws_subnet.subnet1.id, aws_subnet.subnet2.id]
+    subnets = [aws_subnet.private_subnet1.id, aws_subnet.private_subnet2.id]
     security_groups = [aws_security_group.ecs_tasks_sg.id]
   }
 
