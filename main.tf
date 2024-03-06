@@ -146,7 +146,7 @@ resource "aws_route_table_association" "private_rta2" {
 resource "aws_ecs_cluster" "cluster" {
   name = "my-cluster"
 }
-/*
+
 resource "aws_alb" "main" {
   name               = "my-alb"
   internal           = false
@@ -344,4 +344,4 @@ resource "aws_security_group_rule" "ecs_tasks_allow" {
 
   security_group_id = aws_security_group.ecs_tasks_sg.id
 }
-*/
+
