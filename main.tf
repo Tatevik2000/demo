@@ -398,7 +398,7 @@ resource "aws_iam_role" "ecs_task_role" {
 
 # Custom IAM Policy for ECS Task Role (Example: Access to ECR)
 resource "aws_iam_policy" "ecs_task_role_policy" {
-  name        = "ecs-task-role-policy"
+  name        = "ecs-task-role-policy-demo"
   path        = "/"
   description = "ECS task role policy for accessing ECR and logging"
 
