@@ -2,11 +2,6 @@ provider "aws" {
   region = "us-east-1"
 }
 
-
-provider "aws" {
-  region = "us-east-1"
-}
-
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
   enable_dns_support   = true
@@ -16,11 +11,11 @@ resource "aws_vpc" "main" {
   }
 }
 
-# Public Subnets
+# Define Public Subnets
 resource "aws_subnet" "public_subnet1" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
-  availability_zone       = "us-east-1a"
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = "us-east-1a"
   map_public_ip_on_launch = true
   tags = {
     Name = "public-subnet-1a"
@@ -28,16 +23,16 @@ resource "aws_subnet" "public_subnet1" {
 }
 
 resource "aws_subnet" "public_subnet2" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.2.0/24"
-  availability_zone       = "us-east-1b"
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "us-east-1b"
   map_public_ip_on_launch = true
   tags = {
     Name = "public-subnet-1b"
   }
 }
 
-# Private Subnets
+# Define Private Subnets
 resource "aws_subnet" "private_subnet1" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.3.0/24"
@@ -64,7 +59,7 @@ resource "aws_internet_gateway" "gw" {
   }
 }
 
-# NAT Gateways for private subnets
+# NAT Gateways
 resource "aws_eip" "nat_eip1" {
   vpc = true
   tags = {
@@ -95,7 +90,7 @@ resource "aws_nat_gateway" "nat_gw2" {
   }
 }
 
-# Public Route Table
+# Route Tables and Associations
 resource "aws_route_table" "public_rt" {
   vpc_id = aws_vpc.main.id
   route {
@@ -107,7 +102,6 @@ resource "aws_route_table" "public_rt" {
   }
 }
 
-# Association of Public Route Table with Public Subnets
 resource "aws_route_table_association" "public_rta1" {
   subnet_id      = aws_subnet.public_subnet1.id
   route_table_id = aws_route_table.public_rt.id
@@ -118,7 +112,6 @@ resource "aws_route_table_association" "public_rta2" {
   route_table_id = aws_route_table.public_rt.id
 }
 
-# Private Route Table
 resource "aws_route_table" "private_rt" {
   vpc_id = aws_vpc.main.id
   route {
@@ -126,21 +119,33 @@ resource "aws_route_table" "private_rt" {
     nat_gateway_id = aws_nat_gateway.nat_gw1.id
   }
   tags = {
-    Name = "private-rt"
+    Name = "private-rt-1a"
   }
 }
 
-# Association of Private Route Table with Private Subnets
 resource "aws_route_table_association" "private_rta1" {
   subnet_id      = aws_subnet.private_subnet1.id
   route_table_id = aws_route_table.private_rt.id
 }
 
-resource "aws_route_table_association" "private_rta2" {
-  subnet_id      = aws_subnet.private_subnet2.id
-  route_table_id = aws_route_table.private_rt.id
+resource "aws_route_table" "private_rt2" {
+  vpc_id = aws_vpc.main.id
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat_gw2.id
+  }
+  tags = {
+    Name = "private-rt-1b"
+  }
 }
 
+resource "aws_route_table_association" "private_rta2" {
+  subnet_id      = aws_subnet.private_subnet2.id
+  route_table_id = aws_route_table.private_rt2.id
+}
+
+# ALB, Target Groups, Listeners, and Rules
+# Security Group for ALB
 resource "aws_security_group" "alb_sg" {
   name        = "alb-security-group"
   description = "Security group for ALB allowing port 80"
@@ -165,6 +170,7 @@ resource "aws_security_group" "alb_sg" {
   }
 }
 
+# Application Load Balancer
 resource "aws_lb" "main" {
   name               = "main-load-balancer"
   internal           = false
@@ -179,6 +185,7 @@ resource "aws_lb" "main" {
   }
 }
 
+# Target Groups
 resource "aws_lb_target_group" "frontend_tg" {
   name     = "frontend-tg"
   port     = 80
@@ -223,6 +230,7 @@ resource "aws_lb_target_group" "backend_tg" {
   }
 }
 
+# Listener and Rule
 resource "aws_lb_listener" "front_listener" {
   load_balancer_arn = aws_lb.main.arn
   port              = "80"
@@ -249,6 +257,7 @@ resource "aws_lb_listener_rule" "backend_rule" {
     }
   }
 }
+
 
 resource "aws_ecs_cluster" "cluster" {
   name = "my-cluster"
