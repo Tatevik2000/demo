@@ -408,11 +408,14 @@ resource "aws_iam_policy" "ecs_task_role_policy" {
       {
         Effect = "Allow",
         Action = [
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage",
           "ecr:BatchCheckLayerAvailability",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents"
+          "ecr:BatchGetImage",
+          "ecr:CompleteLayerUpload",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:GetLifecyclePolicy",
+          "ecr:InitiateLayerUpload",
+          "ecr:PutImage",
+          "ecr:UploadLayerPart"
         ],
         Resource = "*",
       },
