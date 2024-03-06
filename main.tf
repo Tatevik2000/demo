@@ -345,3 +345,89 @@ resource "aws_security_group_rule" "ecs_tasks_allow" {
   security_group_id = aws_security_group.ecs_tasks_sg.id
 }
 
+
+
+provider "aws" {
+  region = "us-east-1"
+}
+
+# ECR Repository for storing container images
+resource "aws_ecr_repository" "my_ecr_repo" {
+  name                 = "my-ecr-repo"
+  image_tag_mutability = "MUTABLE"
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+# IAM Role for ECS Task Execution
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name = "ecs-task-execution-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com",
+        },
+      },
+    ],
+  })
+}
+
+# Attach the AmazonECSTaskExecutionRolePolicy to the execution role
+resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_attachment" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# IAM Role for ECS Task
+resource "aws_iam_role" "ecs_task_role" {
+  name = "ecs-task-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com",
+        },
+      },
+    ],
+  })
+}
+
+# Custom IAM Policy for ECS Task Role (Example: Access to ECR)
+resource "aws_iam_policy" "ecs_task_role_policy" {
+  name        = "ecs-task-role-policy"
+  path        = "/"
+  description = "ECS task role policy for accessing ECR and logging"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:BatchCheckLayerAvailability",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ],
+        Resource = "*",
+      },
+    ],
+  })
+}
+
+# Attach custom policy to ECS Task Role
+resource "aws_iam_role_policy_attachment" "ecs_task_role_policy_attachment" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.ecs_task_role_policy.arn
+}
