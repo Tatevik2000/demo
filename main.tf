@@ -408,6 +408,7 @@ resource "aws_iam_policy" "ecs_task_role_policy" {
       {
         Effect = "Allow",
         Action = [
+          "ecr:GetAuthorizationToken"
           "ecr:BatchCheckLayerAvailability",
           "ecr:BatchGetImage",
           "ecr:CompleteLayerUpload",
