@@ -345,13 +345,16 @@ resource "aws_security_group_rule" "ecs_tasks_allow" {
   security_group_id = aws_security_group.ecs_tasks_sg.id
 }
 
-resource "aws_ecr_repository" "ecr_repository" {  
+resource "aws_ecr_repository" "my_ecr_repo" {
   name                 = "my-ecr-repo"
-  image_tag_mutability = "MUTABLE"  
+  image_tag_mutability = "MUTABLE"
+  image_scanning_configuration {
+    scan_on_push = true
+  }
 }  
 
 resource "aws_ecr_repository_policy" "policy" {  
-  repository = aws_ecr_repository.ecr_repository.name  
+  repository = aws_ecr_repository.my_ecr_repo.name  
   policy     = <<EOF
   {
     "Version": "2008-10-17",
