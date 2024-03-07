@@ -345,14 +345,36 @@ resource "aws_security_group_rule" "ecs_tasks_allow" {
   security_group_id = aws_security_group.ecs_tasks_sg.id
 }
 
-# ECR Repository for storing container images
-resource "aws_ecr_repository" "my_ecr_repo" {
+resource "aws_ecr_repository" "ecr_repository" {  
   name                 = "my-ecr-repo"
-  image_tag_mutability = "MUTABLE"
-  image_scanning_configuration {
-    scan_on_push = true
+  image_tag_mutability = "MUTABLE"  
+}  
+
+resource "aws_ecr_repository_policy" "policy" {  
+  repository = aws_ecr_repository.ecr_repository.name  
+  policy     = <<EOF
+  {
+    "Version": "2008-10-17",
+    "Statement": [
+      {
+        "Sid": "adds full ecr access to the demo repository",
+        "Effect": "Allow",
+        "Principal": "*",
+        "Action": [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:BatchGetImage",
+          "ecr:CompleteLayerUpload",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:GetLifecyclePolicy",
+          "ecr:InitiateLayerUpload",
+          "ecr:PutImage",
+          "ecr:UploadLayerPart"
+        ]
+      }
+    ]
   }
-}
+  EOF  
+}  
 
 # IAM Role for ECS Task Execution
 resource "aws_iam_role" "ecs_task_execution_role" {
