@@ -293,3 +293,22 @@ resource "aws_ecs_service" "my_service_3001" {
     container_port   = 3001
   }
 }
+
+resource "aws_security_group" "ecs_sg" {
+  name        = "ecs_tasks_sg"
+  description = "Allow inbound access"
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 3001
+    to_port     = 3001
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
