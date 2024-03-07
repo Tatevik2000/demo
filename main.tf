@@ -312,3 +312,57 @@ resource "aws_security_group" "ecs_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
+
+resource "aws_ecs_task_definition" "my_task_80" {
+  family                   = "my-task-family-80"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  cpu                      = "256"
+  memory                   = "512"
+
+  container_definitions = jsonencode([
+    {
+      name      = "my-container-80"
+      image     = "${aws_ecr_repository.my_repository.repository_url}:latest"
+      essential = true
+      memory    = 512
+      cpu       = 256
+      portMappings = [
+        {
+          containerPort = 80
+          hostPort      = 80
+          protocol      = "tcp"
+        },
+      ]
+    }
+  ])
+}
+
+# Task definition for the service running on port 3001
+resource "aws_ecs_task_definition" "my_task_3001" {
+  family                   = "my-task-family-3001"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  cpu                      = "256"
+  memory                   = "512"
+
+  container_definitions = jsonencode([
+    {
+      name      = "my-container-3001"
+      image     = "${aws_ecr_repository.my_repository.repository_url}:latest" # Assuming the same image for simplicity
+      essential = true
+      memory    = 512
+      cpu       = 256
+      portMappings = [
+        {
+          containerPort = 3001
+          hostPort      = 3001
+          protocol      = "tcp"
+        },
+      ]
+    }
+  ])
+}
