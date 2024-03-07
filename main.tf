@@ -143,314 +143,153 @@ resource "aws_route_table_association" "private_rta2" {
   subnet_id      = aws_subnet.private_subnet2.id
   route_table_id = aws_route_table.private_rt2.id
 }
-resource "aws_ecs_cluster" "cluster" {
+
+resource "aws_ecr_repository" "my_repository" {
+  name                 = "my-ecr-repository"
+  image_tag_mutability = "MUTABLE"
+}
+
+resource "aws_ecs_cluster" "my_cluster" {
   name = "my-cluster"
 }
 
-resource "aws_alb" "main" {
-  name               = "my-alb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb_sg.id]
-  subnets            = [aws_subnet.private_subnet1.id, aws_subnet.private_subnet2.id]
-}
-
-resource "aws_ecs_task_definition" "frontend_task" {
-  family                   = "frontend"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  execution_role_arn       = aws_iam_role.ecs_execution_role.arn
-  container_definitions    = <<-EOF
-[
-  {
-    "name": "frontend",
-    "image": "aws_account_id.dkr.ecr.region.amazonaws.com/my-frontend-repo:tag",
-    "essential": true,
-    "portMappings": [
-      {
-        "containerPort": 80,
-        "hostPort": 80
-      }
-    ]
-  }
-]
-EOF
-
-  cpu    = "256"
-  memory = "512"
-}
-
-resource "aws_ecs_task_definition" "backend_task" {
-  family                   = "backend"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  execution_role_arn       = aws_iam_role.ecs_execution_role.arn
-  container_definitions    = <<-EOF
-[
-  {
-    "name": "backend",
-    "image": "aws_account_id.dkr.ecr.region.amazonaws.com/my-backend-repo:tag",
-    "essential": true,
-    "portMappings": [
-      {
-        "containerPort": 3001,
-        "hostPort": 3001
-      }
-    ]
-  }
-]
-EOF
-
-  cpu    = "256"
-  memory = "512"
-}
-
-resource "aws_alb_target_group" "frontend_group" {
-  name     = "frontend-group"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = aws_vpc.main.id
-  target_type = "ip"
-  health_check {
-    path = "/"
-  }
-}
-
-resource "aws_alb_target_group" "backend_group" {
-  name     = "backend-group"
-  port     = 3001
-  protocol = "HTTP"
-  vpc_id   = aws_vpc.main.id
-  target_type = "ip"
-  health_check {
-    path = "/status"
-  }
-}
-
-resource "aws_alb_listener" "frontend_listener" {
-  load_balancer_arn = aws_alb.main.arn
-  port              = "80"
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.frontend_group.arn
-  }
-}
-
-
-resource "aws_alb_listener_rule" "backend_rule" {
-  listener_arn = aws_alb_listener.frontend_listener.arn
-  priority     = 100
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.backend_group.arn
-  }
-
-  condition {
-    path_pattern {
-      values = ["/api/*"]
-    }
-  }
-}
-
-
-resource "aws_iam_role" "ecs_execution_role" {
-  name = "ecs_execution_role"
+resource "aws_iam_role" "ecs_task_execution_role" {
+  name = "ecs_task_execution_role"
 
   assume_role_policy = jsonencode({
-    Version = "2012-10-17",
+    Version = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRole",
-        Effect = "Allow",
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
         Principal = {
           Service = "ecs-tasks.amazonaws.com"
-        },
+        }
       },
     ]
   })
 }
 
-resource "aws_ecs_service" "frontend_service" {
-  name            = "frontend-service"
-  cluster         = aws_ecs_cluster.cluster.id
-  task_definition = aws_ecs_task_definition.frontend_task.arn
-  launch_type     = "FARGATE"
-
-  network_configuration {
-    subnets = [aws_subnet.private_subnet1.id, aws_subnet.private_subnet2.id]
-    security_groups = [aws_security_group.ecs_tasks_sg.id]
-  }
-
-  load_balancer {
-    target_group_arn = aws_alb_target_group.frontend_group.arn
-    container_name   = "frontend"
-    container_port   = 80
-  }
-
-  desired_count = 2
-}
-
-resource "aws_ecs_service" "backend_service" {
-  name            = "backend-service"
-  cluster         = aws_ecs_cluster.cluster.id
-  task_definition = aws_ecs_task_definition.backend_task.arn
-  launch_type     = "FARGATE"
-
-  network_configuration {
-    subnets = [aws_subnet.private_subnet1.id, aws_subnet.private_subnet2.id]
-    security_groups = [aws_security_group.ecs_tasks_sg.id]
-  }
-
-  load_balancer {
-    target_group_arn = aws_alb_target_group.backend_group.arn
-    container_name   = "backend"
-    container_port   = 3001
-  }
-
-  desired_count = 2
+resource "aws_iam_role_policy" "ecs_task_execution_role_policy" {
+  name   = "ecs_task_execution_role_policy"
+  role   = aws_iam_role.ecs_task_execution_role.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+        ],
+        Effect   = "Allow"
+        Resource = "*"
+      },
+    ]
+  })
 }
 
 resource "aws_security_group" "alb_sg" {
   name        = "alb_sg"
   description = "Security group for ALB"
-  vpc_id      = aws_vpc.main.id
-}
 
-resource "aws_security_group_rule" "allow_http" {
-  type        = "ingress"
-  from_port   = 80
-  to_port     = 80
-  protocol    = "tcp"
-  cidr_blocks = ["0.0.0.0/0"]
-
-  security_group_id = aws_security_group.alb_sg.id
-}
-
-resource "aws_security_group" "ecs_tasks_sg" {
-  name        = "ecs_tasks_sg"
-  description = "Security group for ECS tasks"
-  vpc_id      = aws_vpc.main.id
-}
-
-resource "aws_security_group_rule" "ecs_tasks_allow" {
-  type              = "ingress"
-  from_port         = 0
-  to_port           = 65535
-  protocol          = "tcp"
-  source_security_group_id = aws_security_group.alb_sg.id
-
-  security_group_id = aws_security_group.ecs_tasks_sg.id
-}
-
-resource "aws_ecr_repository" "my_ecr_repo" {
-  name                 = "my-ecr-repo"
-  image_tag_mutability = "MUTABLE"
-  image_scanning_configuration {
-    scan_on_push = true
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
-}  
 
-resource "aws_ecr_repository_policy" "policy" {  
-  repository = aws_ecr_repository.my_ecr_repo.name  
-  policy     = <<EOF
-  {
-    "Version": "2008-10-17",
-    "Statement": [
-      {
-        "Sid": "adds full ecr access to the demo repository",
-        "Effect": "Allow",
-        "Principal": "*",
-        "Action": [
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:BatchGetImage",
-          "ecr:CompleteLayerUpload",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:GetLifecyclePolicy",
-          "ecr:InitiateLayerUpload",
-          "ecr:PutImage",
-          "ecr:UploadLayerPart"
-        ]
-      }
-    ]
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
-  EOF  
-}  
-
-# IAM Role for ECS Task Execution
-resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "ecs-task-execution-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action = "sts:AssumeRole",
-        Effect = "Allow",
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com",
-        },
-      },
-    ],
-  })
 }
 
-# Attach the AmazonECSTaskExecutionRolePolicy to the execution role
-resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_attachment" {
-  role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+resource "aws_lb" "my_alb" {
+  name               = "my-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb_sg.id]
+  subnets            = ["<Your-Subnet-ID>", "<Another-Subnet-ID>"]
 }
 
-# IAM Role for ECS Task
-resource "aws_iam_role" "ecs_task_role" {
-  name = "ecs-task-role-demo"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action = "sts:AssumeRole",
-        Effect = "Allow",
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com",
-        },
-      },
-    ],
-  })
+resource "aws_lb_target_group" "tg_80" {
+  name     = "tg-80"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "aws_vpc.main.id"
 }
 
-# Custom IAM Policy for ECS Task Role (Example: Access to ECR)
-resource "aws_iam_policy" "ecs_task_role_policy" {
-  name        = "ecs-task-role-policy-demo"
-  path        = "/"
-  description = "ECS task role policy for accessing ECR and logging"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Action = [
-          "ecr:GetAuthorizationToken",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:BatchGetImage",
-          "ecr:CompleteLayerUpload",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:GetLifecyclePolicy",
-          "ecr:InitiateLayerUpload",
-          "ecr:PutImage",
-          "ecr:UploadLayerPart"
-        ],
-        Resource = "*",
-      },
-    ],
-  })
+resource "aws_lb_target_group" "tg_3001" {
+  name     = "tg-3001"
+  port     = 3001
+  protocol = "HTTP"
+  vpc_id   = "aws_vpc.main.id"
 }
 
-# Attach custom policy to ECS Task Role
-resource "aws_iam_role_policy_attachment" "ecs_task_role_policy_attachment" {
-  role       = aws_iam_role.ecs_task_role.name
-  policy_arn = aws_iam_policy.ecs_task_role_policy.arn
+resource "aws_lb_listener" "listener_80" {
+  load_balancer_arn = aws_lb.my_alb.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.tg_80.arn
+  }
+}
+
+resource "aws_lb_listener" "listener_3001" {
+  load_balancer_arn = aws_lb.my_alb.arn
+  port              = 3001
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.tg_3001.arn
+  }
+}
+
+# Update the ECS Services to include load balancer configuration
+resource "aws_ecs_service" "my_service_80" {
+  name            = "my-service-80"
+  cluster         = aws_ecs_cluster.my_cluster.id
+  task_definition = aws_ecs_task_definition.my_task_80.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = [aws_subnet.private_subnet1.id, aws_subnet.private_subnet2.id]
+    security_groups  = [aws_security_group.ecs_sg.id]
+    assign_public_ip = true
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.tg_80.arn
+    container_name   = "my-container-80"
+    container_port   = 80
+  }
+}
+
+resource "aws_ecs_service" "my_service_3001" {
+  name            = "my-service-3001"
+  cluster         = aws_ecs_cluster.my_cluster.id
+  task_definition = aws_ecs_task_definition.my_task_3001.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = [aws_subnet.private_subnet1.id, aws_subnet.private_subnet2.id]
+    security_groups  = [aws_security_group.ecs_sg.id]
+    assign_public_ip = true
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.tg_3001.arn
+    container_name   = "my-container-3001"
+    container_port   = 3001
+  }
 }
