@@ -108,8 +108,8 @@ module "alb_client" {
 module "ecs_role" {
   source             = "./Modules/IAM"
   create_ecs_role    = true
-  name               = var.iam_role_name["ecs"]
-  name_ecs_task_role = var.iam_role_name["ecs_task_role"]
+  name               = var.iam_role_name["ecs-TEST"]
+  name_ecs_task_role = var.iam_role_name["ecs_task_role-TEST"]
   dynamodb_table     = [module.dynamodb_table.dynamodb_table_arn]
   ssm_parameter_arns = [module.ssm_parameter.ssm_parameter_arn, module.ssm_parameter_alb.ssm_parameter_arn]
 }
