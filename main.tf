@@ -38,6 +38,32 @@ module "target_group_server_green" {
   health_check_port   = var.port_app_server
 }
 
+# ------- Creating Target Group for the client ALB blue environment -------
+module "target_group_client_blue" {
+  source              = "./Modules/ALB"
+  create_target_group = true
+  name                = "tg-${var.environment_name}-c-b"
+  port                = 80
+  protocol            = "HTTP"
+  vpc                 = module.vpc.aws_vpc
+  tg_type             = "ip"
+  health_check_path   = "/"
+  health_check_port   = var.port_app_client
+}
+
+# ------- Creating Target Group for the client ALB green environment -------
+module "target_group_client_green" {
+  source              = "./Modules/ALB"
+  create_target_group = true
+  name                = "tg-${var.environment_name}-c-g"
+  port                = 80
+  protocol            = "HTTP"
+  vpc                 = module.vpc.aws_vpc
+  tg_type             = "ip"
+  health_check_path   = "/"
+  health_check_port   = var.port_app_client
+}
+
 # ------- Creating Security Group for the server ALB -------
 module "security_group_alb_server" {
   source              = "./Modules/SecurityGroup"
@@ -68,6 +94,15 @@ module "alb_server" {
   target_group   = module.target_group_server_blue.arn_tg
 }
 
+# ------- Creating Client Application ALB -------
+module "alb_client" {
+  source         = "./Modules/ALB"
+  create_alb     = true
+  name           = "${var.environment_name}-cli"
+  subnets        = [module.vpc.public_subnets[0], module.vpc.public_subnets[1]]
+  security_group = module.security_group_alb_client.sg_id
+  target_group   = module.target_group_client_blue.arn_tg
+}
 
 # ------- ECS Role -------
 module "ecs_role" {
@@ -90,7 +125,7 @@ module "ecs_role_policy" {
 # ------- Creating client ECR Repository to store Docker Images -------
 module "ecr" {
   source = "./Modules/ECR"
-  name   = "${var.environment_name}"
+  name   = "demo"
 }
 
 # ------- Creating ECS Task Definition for the server -------
@@ -135,6 +170,7 @@ module "ecs_taks_definition_client" {
   aws_region         = var.aws_region
 }
 
+
 # ------- Creating a server Security Group for ECS TASKS -------
 module "security_group_ecs_task_server" {
   source          = "./Modules/SecurityGroup"
@@ -151,7 +187,7 @@ module "security_group_ecs_task_client" {
   description     = "Controls access to the client ECS task"
   vpc_id          = module.vpc.aws_vpc
   ingress_port    = var.port_app_client
-  security_groups = [module.security_group_alb_server.sg_id]
+  security_groups = [module.security_group_alb_client.sg_id]
 }
 
 # ------- Creating ECS Cluster -------
@@ -185,14 +221,14 @@ module "ecs_service_server" {
 
 # ------- Creating ECS Service client -------
 module "ecs_service_client" {
-  depends_on          = [module.alb_server]
+  depends_on          = [module.alb_client]
   source              = "./Modules/ECS/Service"
   name                = "${var.environment_name}-client"
   ecs_cluster_id      = module.ecs_cluster.ecs_cluster_id 
   arn_task_definition = module.ecs_taks_definition_client.arn_task_definition
   security_group_ids  = [module.security_group_ecs_task_client.sg_id]
   subnet_ids          = [module.vpc.private_subnets_client[0], module.vpc.private_subnets_client[1]]
-  target_group_arn    = module.target_group_server_blue.arn_tg
+  target_group_arn    = module.target_group_client_blue.arn_tg
   desired_tasks       = 1
   container_port      = var.port_app_client
   container_memory    = "512"
@@ -206,20 +242,20 @@ module "ecs_service_client" {
   aws_region          = var.aws_region 
 }
 
-
 module "ssm_parameter" {
   source  = "./Modules/SSM"
-  name    = "test-DYNAMODB_TABLE"
+  name    = "DYNAMODB_TABLE"
   value   = "assets-table-demo"
   type    = "String" 
 }
 
 module "ssm_parameter_alb" {
   source  = "./Modules/SSM"
-  name    = "test-LOAD_BALANCER_URL"
+  name    = "LOAD_BALANCER_URL"
   value   =  module.alb_server.dns_alb
   type    = "String" 
 }
+
 # ------- Creating ECS Autoscaling policies for the server application -------
 module "ecs_autoscaling_server" {
   depends_on   = [module.ecs_service_server]
