@@ -25,37 +25,11 @@ module "target_group_server_blue" {
   health_check_port   = var.port_app_server
 }
 
-# ------- Creating Target Group for the server ALB green environment -------
-module "target_group_server_green" {
-  source              = "./Modules/ALB"
-  create_target_group = true
-  name                = "tg-${var.environment_name}-s-g"
-  port                = 80
-  protocol            = "HTTP"
-  vpc                 = module.vpc.aws_vpc
-  tg_type             = "ip"
-  health_check_path   = "/status"
-  health_check_port   = var.port_app_server
-}
-
 # ------- Creating Target Group for the client ALB blue environment -------
 module "target_group_client_blue" {
   source              = "./Modules/ALB"
   create_target_group = true
   name                = "tg-${var.environment_name}-c-b"
-  port                = 80
-  protocol            = "HTTP"
-  vpc                 = module.vpc.aws_vpc
-  tg_type             = "ip"
-  health_check_path   = "/"
-  health_check_port   = var.port_app_client
-}
-
-# ------- Creating Target Group for the client ALB green environment -------
-module "target_group_client_green" {
-  source              = "./Modules/ALB"
-  create_target_group = true
-  name                = "tg-${var.environment_name}-c-g"
   port                = 80
   protocol            = "HTTP"
   vpc                 = module.vpc.aws_vpc
@@ -97,10 +71,10 @@ module "alb_server" {
 # ------- Creating Client Application ALB -------
 module "alb_client" {
   source         = "./Modules/ALB"
-  create_alb     = true
-  name           = "${var.environment_name}-cli"
+  create_alb     = false
+  name           = "${var.environment_name}-ser"
   subnets        = [module.vpc.public_subnets[0], module.vpc.public_subnets[1]]
-  security_group = module.security_group_alb_client.sg_id
+  security_group = module.security_group_alb_server.sg_id
   target_group   = module.target_group_client_blue.arn_tg
 }
 
