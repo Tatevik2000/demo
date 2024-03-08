@@ -125,7 +125,7 @@ module "ecs_role_policy" {
 # ------- Creating client ECR Repository to store Docker Images -------
 module "ecr" {
   source = "./Modules/ECR"
-  name   = "demo"
+  name   = "${var.environment_name}"
 }
 
 # ------- Creating ECS Task Definition for the server -------
