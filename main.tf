@@ -244,14 +244,14 @@ module "ecs_service_client" {
 
 module "ssm_parameter" {
   source  = "./Modules/SSM"
-  name    = "DYNAMODB_TABLE"
+  name    = "test/DYNAMODB_TABLE"
   value   = "assets-table-demo"
   type    = "String" 
 }
 
 module "ssm_parameter_alb" {
   source  = "./Modules/SSM"
-  name    = "LOAD_BALANCER_URL"
+  name    = "test/LOAD_BALANCER_URL"
   value   =  module.alb_server.dns_alb
   type    = "String" 
 }
