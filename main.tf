@@ -196,7 +196,7 @@ module "ecs_service_server" {
 
 # ------- Creating ECS Service client -------
 module "ecs_service_client" {
-  depends_on          = [module.alb_client]
+  depends_on          = [module.alb_server]
   source              = "./Modules/ECS/Service"
   name                = "${var.environment_name}-client"
   ecs_cluster_id      = module.ecs_cluster.ecs_cluster_id 
