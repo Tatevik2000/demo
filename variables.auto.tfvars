@@ -1,8 +1,7 @@
 aws_region = "us-east-1"
-environment_name = "demo"
-rt_zone_name     = "testofalamashxarh.link"
+environment_name = "test"
 tags = {
-  "Environment" = "Dev"
+  "Environment" = "test"
 }
 acm_create_certificate              = true
 
