@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 resource "random_id" "RANDOM_ID" {
   byte_length = "2"
 }
