@@ -1,3 +1,4 @@
+/*
 resource "random_id" "RANDOM_ID" {
   byte_length = "2"
 }
@@ -294,3 +295,4 @@ module "dynamodb_table" {
   source = "./Modules/Dynamodb"
   name   = "assets-table-${var.environment_name}"
 }
+*/
